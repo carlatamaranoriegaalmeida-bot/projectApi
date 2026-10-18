@@ -1,0 +1,30 @@
+config:
+  target: "http://localhost:3000"
+  plugins:
+    ensure: {} # Falla automáticamente el proceso si no se cumplen los acuerdos de nivel de servicio (SLA)
+  phases:
+    - duration: 20
+      arrivalRate: 5
+      name: "1. 🧪 Fase de Calentamiento (Tráfico Base)"
+    - duration: 30
+      arrivalRate: 15
+      rampTo: 50
+      name: "2. 🧪 Fase de Saturación Máxima (Pico de Carga)"
+  ensure:
+    thresholds:
+      - "http.response_time.p99": 200 # El 99% de las transacciones debe procesarse en < 200ms
+      - maxErrorRate: 1               # No se permite más del 1% de caídas del socket HTTP
+scenarios:
+  - name: "Inundación transaccional perimetral (Payloads válidos)"
+    flow:
+      - post:
+          url: "/api/empleados"
+          json:
+            name: "Andrés Mendoza"
+            position: "Software Architect"
+            department: "I+D"
+            salary: 4200
+          capture:
+            json: "$.data._id"
+            as: "employeeId"
+      - think: 1
