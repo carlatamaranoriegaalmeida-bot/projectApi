@@ -2,6 +2,8 @@ import type { Request, Response } from 'express';
 import { beforeEach, describe, expect, it, jest } from '@jest/globals';
 import { EmployeeController } from './employee.controller.js';
 import type { IEmployee, IEmployeeRepository } from '../repositories/iemployee.repository.js';
+import { createEmployeeSchema, employeeIdSchema } from '../dtos/employee.dto.js';
+import { getZodRejectionCount, validateDto } from '../middleware/validation.middleware.js';
 
 describe('🧪 Unit Test: EmployeeController (Mantenibilidad & Testabilidad)', () => {
  let controller: EmployeeController;
@@ -36,6 +38,17 @@ describe('🧪 Unit Test: EmployeeController (Mantenibilidad & Testabilidad)', (
 
  const makeRequest = (values: { params?: Request['params']; body?: Request['body'] } = {}): Request =>
   values as Partial<Request> as Request;
+
+ const validateAndCreateEmployee = async (body: Request['body']): Promise<void> => {
+  const request = makeRequest({ body });
+  let controllerExecution: Promise<void> | undefined;
+
+  await validateDto(createEmployeeSchema)(request, mockResponse as Response, () => {
+   controllerExecution = controller.createEmployee(request, mockResponse as Response, nextMock);
+  });
+
+  await controllerExecution;
+ };
 
  it('Debería retornar un estado 200 y la lista de empleados de la abstracción', async () => {
  const fakeEmployees: IEmployee[] = [employee];
@@ -72,20 +85,153 @@ describe('🧪 Unit Test: EmployeeController (Mantenibilidad & Testabilidad)', (
 
  it('Debería retornar un estado 201 al crear un empleado', async () => {
  mockRepository.create.mockResolvedValue(employee);
+ const newEmployee = {
+  name: employee.name,
+  position: employee.position,
+  department: employee.department,
+  salary: employee.salary,
+ };
 
  await controller.createEmployee(
-  makeRequest({ body: employee }),
+  makeRequest({ body: newEmployee }),
   mockResponse as Response,
   nextMock,
  );
 
- expect(mockRepository.create).toHaveBeenCalledWith(employee);
+ expect(mockRepository.create).toHaveBeenCalledWith(newEmployee);
  expect(statusMock).toHaveBeenCalledWith(201);
  expect(jsonMock).toHaveBeenCalledWith({
   success: true,
   message: 'Empleado creado exitosamente',
   data: employee,
  });
+ });
+
+ describe('Validación al crear un empleado', () => {
+  const validEmployee = {
+   name: 'Andrés Mendoza',
+   position: 'Arquitecto',
+   department: 'TI',
+   salary: 4000,
+  };
+
+  it('acepta los datos válidos y los procesa desde el controller', async () => {
+   mockRepository.create.mockResolvedValue(employee);
+
+   await validateAndCreateEmployee(validEmployee);
+
+   expect(mockRepository.create).toHaveBeenCalledWith(validEmployee);
+   expect(statusMock).toHaveBeenCalledWith(201);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: true,
+    message: 'Empleado creado exitosamente',
+    data: employee,
+   });
+   expect(nextMock).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un empleado con salario inválido sin llamar al controller', async () => {
+   await validateAndCreateEmployee({ ...validEmployee, salary: -1 });
+
+   expect(mockRepository.create).not.toHaveBeenCalled();
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['salary: El salario debe ser un número positivo'],
+   });
+  });
+
+  it('rechaza un salario que no es numérico con el error de tipo de Zod', async () => {
+   await validateAndCreateEmployee({ ...validEmployee, salary: '4000' });
+
+   expect(mockRepository.create).not.toHaveBeenCalled();
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['salary: Invalid input: expected number, received string'],
+   });
+   expect(nextMock).not.toHaveBeenCalled();
+  });
+
+  it('rechaza un nombre vacío sin llamar al controller', async () => {
+   await validateAndCreateEmployee({ ...validEmployee, name: '' });
+
+   expect(mockRepository.create).not.toHaveBeenCalled();
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['name: El nombre es obligatorio'],
+   });
+  });
+
+  it('rechaza un puesto vacío sin llamar al controller', async () => {
+   await validateAndCreateEmployee({ ...validEmployee, position: '' });
+
+   expect(mockRepository.create).not.toHaveBeenCalled();
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['position: El puesto es obligatorio'],
+   });
+  });
+
+  it('rechaza un departamento vacío sin llamar al controller', async () => {
+   await validateAndCreateEmployee({ ...validEmployee, department: '' });
+
+   expect(mockRepository.create).not.toHaveBeenCalled();
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['department: El departamento es obligatorio'],
+   });
+  });
+
+  it('rechaza un ID inválido con un error 400 de Zod', async () => {
+   const request = makeRequest({ params: { id: 'invalid-id' } });
+
+   await validateDto(employeeIdSchema, 'params')(
+    request,
+    mockResponse as Response,
+    nextMock,
+   );
+
+   expect(statusMock).toHaveBeenCalledWith(400);
+   expect(jsonMock).toHaveBeenCalledWith({
+    success: false,
+    message: 'Error de validación perimetral (DTO)',
+    data: ['id: El ID debe ser un ObjectId válido de 24 caracteres hexadecimales'],
+   });
+   expect(nextMock).not.toHaveBeenCalled();
+  });
+
+  it('cuenta exactamente los rechazos de Zod frente a un lote de tráfico válido y corrupto', async () => {
+   const validRequestCount = 3;
+   const corruptRequestCount = 4;
+   const rejectionCountBeforeBatch = getZodRejectionCount();
+   mockRepository.create.mockResolvedValue(employee);
+
+   for (let index = 0; index < validRequestCount; index += 1) {
+    await validateAndCreateEmployee(validEmployee);
+   }
+
+   for (let index = 0; index < corruptRequestCount; index += 1) {
+    await validateAndCreateEmployee({ ...validEmployee, salary: -1 });
+   }
+
+   const responseStatuses = statusMock.mock.calls.map(([status]) => status);
+   const createdResponseCount = responseStatuses.filter((status) => status === 201).length;
+   const rejectedResponseCount = responseStatuses.filter((status) => status === 400).length;
+
+   expect(createdResponseCount).toBe(validRequestCount);
+   expect(rejectedResponseCount).toBe(corruptRequestCount);
+   expect(getZodRejectionCount() - rejectionCountBeforeBatch).toBe(corruptRequestCount);
+   expect(mockRepository.create).toHaveBeenCalledTimes(validRequestCount);
+  });
  });
 
  it('Debería retornar un estado 200 al actualizar un empleado', async () => {
@@ -122,6 +268,24 @@ describe('🧪 Unit Test: EmployeeController (Mantenibilidad & Testabilidad)', (
  expect(jsonMock).toHaveBeenCalledWith({
   success: true,
   message: 'Empleado eliminado exitosamente',
+  data: null,
+ });
+ });
+
+ it('Debería retornar un estado 404 cuando el empleado a eliminar no existe', async () => {
+ mockRepository.delete.mockResolvedValue(false);
+
+ await controller.deleteEmployee(
+  makeRequest({ params: { id: employee.id } }),
+  mockResponse as Response,
+  nextMock,
+ );
+
+ expect(mockRepository.delete).toHaveBeenCalledWith(employee.id);
+ expect(statusMock).toHaveBeenCalledWith(404);
+ expect(jsonMock).toHaveBeenCalledWith({
+  success: false,
+  message: 'Empleado no encontrado para eliminar',
   data: null,
  });
  });

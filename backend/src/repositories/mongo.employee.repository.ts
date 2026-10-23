@@ -1,4 +1,4 @@
-import type { IEmployeeRepository, IEmployee } from "./iemployee.repository.js";
+import type { IEmployeeRepository, IEmployee, NewEmployee } from "./iemployee.repository.js";
 import EmployeeModel from "../models/employee.model.js";
 
 export class MongoEmployeeRepository implements IEmployeeRepository {
@@ -17,7 +17,7 @@ export class MongoEmployeeRepository implements IEmployeeRepository {
           : null;
     }
 
-    async create(employee: IEmployee): Promise<IEmployee> {
+    async create(employee: NewEmployee): Promise<IEmployee> {
     const newEmployee = new EmployeeModel(employee);
     const saved = await newEmployee.save();
     return {

@@ -6,10 +6,12 @@ export interface IEmployee{
     salary: number;
 } 
 
+export type NewEmployee = Omit<IEmployee, 'id'>;
+
 export interface IEmployeeRepository {  
   findAll(): Promise<IEmployee[]>;
   findById(id: string): Promise<IEmployee | null>;
-  create(employee: IEmployee): Promise<IEmployee>;
+  create(employee: NewEmployee): Promise<IEmployee>;
   update(id: string, employee: Partial<IEmployee>): Promise<IEmployee | null>;
   delete(id: string): Promise<boolean>;
 }
