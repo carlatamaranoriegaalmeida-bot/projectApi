@@ -3,6 +3,7 @@ export interface ApiResponse<T> {
   message: string;
   data?: T | null;
   error?: any;
+  timestamp?: string;
 }
 
 export const sendResponse = <T>(

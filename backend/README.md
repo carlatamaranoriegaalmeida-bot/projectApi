@@ -65,21 +65,25 @@ npm ci
 npm start
 ```
 
-Abre [http://localhost:4200](http://localhost:4200). El frontend consume la API en `http://localhost:3000/api/empleados`, por lo que ambos servidores deben estar ejecutándose.
+Abre [http://localhost:4200](http://localhost:4200). El frontend consume la API en `http://localhost:3000/api/v1/empleados`, por lo que ambos servidores deben estar ejecutándose.
 
 ## 4. Probar la API
 
+La ruta `POST /api/v1/auth/login` permite iniciar sesión con una cuenta existente y devuelve un JWT. No hay una ruta para registrar usuarios. Todas las rutas de empleados requieren autenticación; el cliente debe enviar el JWT obtenido al iniciar sesión. El backend valida la firma usando `JWT_SECRET`.
+
 | Método | Ruta | Operación |
 |---|---|---|
-| `GET` | `/api/empleados` | Listar empleados |
-| `GET` | `/api/empleados/:id` | Obtener un empleado |
-| `POST` | `/api/empleados` | Crear un empleado |
-| `PUT` | `/api/empleados/:id` | Actualizar un empleado |
-| `DELETE` | `/api/empleados/:id` | Eliminar un empleado |
+| `POST` | `/api/v1/auth/login` | Iniciar sesión |
+| `GET` | `/api/v1/empleados` | Listar empleados (requiere autenticación) |
+| `GET` | `/api/v1/empleados/:id` | Obtener un empleado (requiere autenticación) |
+| `POST` | `/api/v1/empleados` | Crear un empleado (requiere autenticación) |
+| `PUT` | `/api/v1/empleados/:id` | Actualizar un empleado (requiere autenticación) |
+| `DELETE` | `/api/v1/empleados/:id` | Eliminar un empleado (requiere autenticación) |
 
-Puedes comprobar el listado en `http://localhost:3000/api/empleados`. Para crear un empleado desde PowerShell:
+Para crear un empleado desde PowerShell, configura `$token` con un JWT válido:
 
 ```powershell
+$token = "JWT_VALIDO"
 $empleado = @{
   name = "Ana Pérez"
   position = "Desarrolladora"
@@ -89,7 +93,8 @@ $empleado = @{
 
 Invoke-RestMethod `
   -Method Post `
-  -Uri "http://localhost:3000/api/empleados" `
+  -Uri "http://localhost:3000/api/v1/empleados" `
+  -Headers @{ Authorization = "Bearer $token" } `
   -ContentType "application/json" `
   -Body $empleado
 ```
