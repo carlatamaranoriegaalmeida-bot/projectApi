@@ -4,7 +4,7 @@ Guía para configurar MongoDB local o Atlas, iniciar la API y ejecutar la aplica
 
 ## Requisitos
 
-- Node.js 20.19 o posterior y npm.
+- Node.js 24 LTS y npm.
 - MongoDB Community Server local o una cuenta de MongoDB Atlas.
 
 ## 1. Configurar MongoDB
