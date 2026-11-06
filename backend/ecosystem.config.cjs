@@ -7,14 +7,14 @@ module.exports = {
  env: {
         NODE_ENV: "production",
         PORT: 3000,
-        MONGODB_URI: "mongodb+srv://taminoriega28_db_user:zombie1991@cluster0.a9apcrm.mongodb.net/usuarios_db?retryWrites=true&w=majority",
-        JWT_SECRET: "UnAHeXAdEcImAL_o_FrAsE_UlTrA_SeCrEtA_Y_LaRgA_2026"
+        MONGODB_URI: process.env.MONGODB_URI,
+        JWT_SECRET: process.env.JWT_SECRET
 },
 env_production: {
         NODE_ENV: "production",
         PORT: 3000,
-        MONGODB_URI: "mongodb+srv://taminoriega28_db_user:zombie1991@cluster0.a9apcrm.mongodb.net/usuarios_db?retryWrites=true&w=majority",
-        JWT_SECRET: "UnAHeXAdEcImAL_o_FrAsE_UlTrA_SeCrEtA_Y_LaRgA_2026"
+        MONGODB_URI: process.env.MONGODB_URI,
+        JWT_SECRET: process.env.JWT_SECRET
 },
         error_file: "/var/www/backend/logs/err.log",
         out_file: "/var/www/backend/logs/out.log",
@@ -30,9 +30,8 @@ deploy : {
         ref : 'origin/feature/jwt', 
         repo : 'git@github.com:carlatamaranoriegaalmeida-bot/projectApi.git',
         path : '/var/www/backend/projectApi/backend',
-        'post-deploy' : 'mkdir -p logs && npm install && pm2 reload ecosystem.config.cjs --env production && pm2 save',
-        ssh_options: "IdentityFile=C:/keys/bclaves.pem" 
+       'post-deploy' : 'mkdir -p logs && npm install && pm2 reload ecosystem.config.cjs --env production && pm2 save && curl -X POST -H "Content-type: application/json" --data \'{"text":"🚀 ¡Despliegue exitoso de `mi-node-app` en producción (`feature/jwt`)!"}\' $SLACK_WEBHOOK_URL',
+        ssh_options: "IdentityFile=C:/keys/bclaves.pem"
         }
         }
 };
-
