@@ -48,7 +48,7 @@ Desde la raíz del repositorio, abre una terminal y ejecuta:
 cd backend
 npm ci
 $env:MONGODB_URI = "mongodb://127.0.0.1:27017/empleados_db"
-$env:SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/TU/WEBHOOK"
+# Configure SLACK_WEBHOOK_URL locally; never commit its value.
 npm run dev
 ```
 
@@ -116,3 +116,12 @@ Desde la carpeta `backend`:
 ```powershell
 npm test
 ```
+
+Para comprobar la entrega de una alerta en Slack sin añadir una ruta de prueba a la API, configura el webhook en la terminal y ejecuta:
+
+```powershell
+# Configure SLACK_WEBHOOK_URL locally; never commit its value.
+npm run test:slack
+```
+
+El comando envía una alerta de prueba y devuelve un código de error si falta la variable, el webhook no es válido o Slack rechaza la petición. No guardes el webhook en el código ni lo compartas.
