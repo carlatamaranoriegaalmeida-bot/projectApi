@@ -9,7 +9,7 @@ Guía para configurar MongoDB local o Atlas, iniciar la API y ejecutar la aplica
 
 ## 1. Configurar MongoDB
 
-El backend obtiene la conexión de la variable de entorno `MONGODB_URI`. No carga archivos `.env`; configura la variable en la terminal donde iniciarás el backend.
+El backend obtiene la conexión de la variable de entorno `MONGODB_URI` y carga las variables de un archivo `.env` local si existe. También puedes configurarlas en la terminal donde iniciarás el backend.
 
 ### Opción A: MongoDB local
 
@@ -48,10 +48,11 @@ Desde la raíz del repositorio, abre una terminal y ejecuta:
 cd backend
 npm ci
 $env:MONGODB_URI = "mongodb://127.0.0.1:27017/empleados_db"
+$env:SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/TU/WEBHOOK"
 npm run dev
 ```
 
-Si utilizas Atlas, configura la URI de Atlas en vez de la URI local. El servidor escucha en `http://localhost:3000`. El puerto predeterminado es `3000`; puede cambiarse mediante la variable `PORT`.
+Si utilizas Atlas, configura la URI de Atlas en vez de la URI local. `SLACK_WEBHOOK_URL` es opcional; cuando está configurada, el backend envía alertas de excepciones no controladas a Slack. No subas el webhook ni el archivo `.env` al repositorio. El servidor escucha en `http://localhost:3000`. El puerto predeterminado es `3000`; puede cambiarse mediante la variable `PORT`.
 
 La variable `$env:MONGODB_URI` solo permanece en esa terminal. Si la cierras o abres otra, vuelve a configurarla antes de ejecutar el backend.
 
