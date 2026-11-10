@@ -23,6 +23,7 @@ process.on('unhandledRejection', async (reason) => {
 const port = app.get('puerto');
 
 await connectDatabase();
-app.listen(port, () => {
+app.listen(port, async () => {
   console.log('Servidor escuchando en el puerto ' + port);
+  await sendSlackAlert(`🚀 El servidor \`mi-backend\` se ha iniciado correctamente en el puerto ${port}.`);
 });
